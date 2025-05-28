@@ -9,8 +9,8 @@ import time
 import threading
 import math
 from piper_sdk import *
-from piper_sdk import C_PiperInterface
-from piper_msgs.msg import PiperStatusMsg, TorqueCmd
+from piper_sdk import C_PiperInterface_V2
+from piper_msgs.msg import PiperStatusMsg, TorqueCmd, JointCurrent
 from piper_msgs.srv import Enable
 from geometry_msgs.msg import Pose
 from scipy.spatial.transform import Rotation as R  # For Euler angle to quaternion conversion
@@ -42,6 +42,7 @@ class PiperRosNode(Node):
         self.joint_ctrl_pub = self.create_publisher(JointState, 'joint_ctrl', 1)
         self.arm_status_pub = self.create_publisher(PiperStatusMsg, 'arm_status', 1)
         self.end_pose_pub = self.create_publisher(Pose, 'end_pose', 1)
+        # self.current_pub = self.create_publisher(JointCurrent, 'joint_current', 1)
         # Service
         self.motor_srv = self.create_service(Enable, 'enable_srv', self.handle_enable_service)
         # Joint
@@ -59,7 +60,7 @@ class PiperRosNode(Node):
         # Enable flag
         self.__enable_flag = False
         # Create piper class and open CAN interface
-        self.piper = C_PiperInterface(can_name=self.can_port)
+        self.piper = C_PiperInterface_V2(can_name=self.can_port)
         self.piper.ConnectPort()
 
         # Start subscription thread
@@ -166,11 +167,19 @@ class PiperRosNode(Node):
         effort_4:float = self.piper.GetArmHighSpdInfoMsgs().motor_5.effort/1000
         effort_5:float = self.piper.GetArmHighSpdInfoMsgs().motor_6.effort/1000
         effort_6:float = self.piper.GetArmGripperMsgs().gripper_state.grippers_effort/1000
+        # current_0: float = self.piper.GetArmHighSpdInfoMsgs().motor_1.current
+        # current_1: float = self.piper.GetArmHighSpdInfoMsgs().motor_2.current
+        # current_2: float = self.piper.GetArmHighSpdInfoMsgs().motor_3.current
+        # current_3: float = self.piper.GetArmHighSpdInfoMsgs().motor_4.current   
+        # current_4: float = self.piper.GetArmHighSpdInfoMsgs().motor_5.current
+        # current_5: float = self.piper.GetArmHighSpdInfoMsgs().motor_5.current
+        
         self.joint_states.position = [joint_0,joint_1, joint_2, joint_3, joint_4, joint_5,joint_6]
         self.joint_states.velocity = [vel_0, vel_1, vel_2, vel_3, vel_4, vel_5]
         self.joint_states.effort = [effort_0, effort_1, effort_2, effort_3, effort_4, effort_5, effort_6]
         # 发布所有消息
         self.joint_pub.publish(self.joint_states)
+        # self.current_pub.publish([current_0, current_1, current_2, current_3, current_4, current_5])
 
     def PublishArmCtrlAndGripper(self):
         self.joint_ctrl.header.stamp = self.get_clock().now().to_msg()
@@ -210,21 +219,17 @@ class PiperRosNode(Node):
             torque_data(): The position data
         """
 
+        if torque_data.motor_num == 1 or torque_data.motor_num == 4 or torque_data.motor_num == 6:
+            self.get_logger().info("Motor 1, 4 or 6 should not move")
+            return
+
         self.get_logger().info(f"Received TorqueCmd:")
         self.get_logger().info(f"Motor Number: {torque_data.motor_num}")
-        self.get_logger().info(f"pos_ref: {torque_data.pos_ref}")
-        self.get_logger().info(f"z: {torque_data.vel_ref}")
-        self.get_logger().info(f"roll: {torque_data.kp}")
-        self.get_logger().info(f"pitch: {torque_data.kd}")
-        self.get_logger().info(f"yaw: {torque_data.t_ref}")
+        self.get_logger().info(f"torque: {torque_data.t_ref}")
 
         if(self.GetEnableFlag()):
-            self.piper.MotionCtrl_1(0x00, 0x00, 0x00)
-            self.piper.MotionCtrl_2(0x01, 0x04, 50, 0xAD)
-            self.piper.JointMitCtrl(torque_data.motor_num, torque_data.pos_ref, torque_data.vel_ref,
-                                    torque_data.kp, torque_data.kd, torque_data.t_ref)
-            self.piper.GripperCtrl(torque_data.gripper_angle, torque_data.gripper_effort, 0x01, 0)
-
+            self.piper.MotionCtrl_2(0x01, 0x04, 0, 0xAD)
+            self.piper.JointMitCtrl(torque_data.motor_num, 0, 0, 0, 0, torque_data.t_ref)
 
     def enable_callback(self, enable_flag: Bool):
         """Callback function for enabling the robotic arm

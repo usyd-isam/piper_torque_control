@@ -39,7 +39,7 @@ def generate_launch_description():
     piper_node = Node(
         package='piper',
         executable='piper_torque_ctrl',
-        name='piper_ctrl_single_node',
+        name='piper_torque_ctrl_single_node',
         output='screen',
         parameters=[{
             'can_port': LaunchConfiguration('can_port'),
