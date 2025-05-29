@@ -195,14 +195,10 @@ class PiperRosNode(Node):
 
         Args:
             torque_data(): The position data in Vector3 format to use standard ROS message types
-            X: The motor number, which can be 2, 3, 5
+            X: The motor number
             Y: The torque value, which can be positive or negative floating point number 
             Z: The reserved value, which is not used in this case
         """
-
-        if torque_data.x != 1 and torque_data.x != 2 and torque_data.x != 3 and torque_data.x != 5:
-            self.get_logger().info("Motor 1, 4 or 6 should not move")
-            return
 
         self.get_logger().info(f"Received TorqueCmd:")
         self.get_logger().info(f"Motor Number: {torque_data.x}")
