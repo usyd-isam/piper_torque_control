@@ -1,0 +1,31 @@
+function [data, info] = jointCurrent
+%JointCurrent gives an empty data for piper_msgs/JointCurrent
+% Copyright 2019-2021 The MathWorks, Inc.
+data = struct();
+data.MessageType = 'piper_msgs/JointCurrent';
+[data.header, info.header] = ros.internal.ros2.messages.std_msgs.header;
+info.header.MLdataType = 'struct';
+[data.j1, info.j1] = ros.internal.ros2.messages.ros2.default_type('int64',1,0);
+[data.j2, info.j2] = ros.internal.ros2.messages.ros2.default_type('int64',1,0);
+[data.j3, info.j3] = ros.internal.ros2.messages.ros2.default_type('int64',1,0);
+[data.j4, info.j4] = ros.internal.ros2.messages.ros2.default_type('int64',1,0);
+[data.j5, info.j5] = ros.internal.ros2.messages.ros2.default_type('int64',1,0);
+[data.j6, info.j6] = ros.internal.ros2.messages.ros2.default_type('int64',1,0);
+info.MessageType = 'piper_msgs/JointCurrent';
+info.constant = 0;
+info.default = 0;
+info.maxstrlen = NaN;
+info.MaxLen = 1;
+info.MinLen = 1;
+info.MatPath = cell(1,11);
+info.MatPath{1} = 'header';
+info.MatPath{2} = 'header.stamp';
+info.MatPath{3} = 'header.stamp.sec';
+info.MatPath{4} = 'header.stamp.nanosec';
+info.MatPath{5} = 'header.frame_id';
+info.MatPath{6} = 'j1';
+info.MatPath{7} = 'j2';
+info.MatPath{8} = 'j3';
+info.MatPath{9} = 'j4';
+info.MatPath{10} = 'j5';
+info.MatPath{11} = 'j6';

@@ -10,9 +10,9 @@ import threading
 import math
 from piper_sdk import *
 from piper_sdk import C_PiperInterface_V2
-from piper_msgs.msg import PiperStatusMsg, TorqueCmd, JointCurrent
+from piper_msgs.msg import PiperStatusMsg
 from piper_msgs.srv import Enable
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, Vector3
 from scipy.spatial.transform import Rotation as R  # For Euler angle to quaternion conversion
 
 
@@ -39,10 +39,8 @@ class PiperRosNode(Node):
         self.get_logger().info(f"gripper_val_mutiple is {self.gripper_val_mutiple}")
         # Publishers
         self.joint_pub = self.create_publisher(JointState, 'joint_states_single', 1)
-        self.joint_ctrl_pub = self.create_publisher(JointState, 'joint_ctrl', 1)
         self.arm_status_pub = self.create_publisher(PiperStatusMsg, 'arm_status', 1)
         self.end_pose_pub = self.create_publisher(Pose, 'end_pose', 1)
-        self.current_pub = self.create_publisher(JointCurrent, 'joint_current', 1)
         # Service
         self.motor_srv = self.create_service(Enable, 'enable_srv', self.handle_enable_service)
         # Joint
@@ -57,8 +55,6 @@ class PiperRosNode(Node):
         self.joint_ctrl.position = [0.0] * 7
         self.joint_ctrl.velocity = [0.0] * 7
         self.joint_ctrl.effort = [0.0] * 7
-        # Joint current
-        self.current = JointCurrent()
         # Enable flag
         self.__enable_flag = False
         # Create piper class and open CAN interface
@@ -67,7 +63,7 @@ class PiperRosNode(Node):
 
         # Start subscription thread
         self.create_subscription(Bool, 'enable_flag', self.enable_callback, 1)
-        self.create_subscription(TorqueCmd, 'torque_cmd', self.torque_callback, 1)
+        self.create_subscription(Vector3, 'torque_cmd', self.torque_callback, 1)
 
         self.publisher_thread = threading.Thread(target=self.publish_thread)
         self.publisher_thread.start()
@@ -116,7 +112,6 @@ class PiperRosNode(Node):
 
             self.PublishArmState()
             self.PublishArmJointAndGripper()
-            self.PublishArmCtrlAndGripper()
             self.PublishArmEndPose()
 
             rate.sleep()
@@ -162,47 +157,19 @@ class PiperRosNode(Node):
         vel_3: float = self.piper.GetArmHighSpdInfoMsgs().motor_4.motor_speed / 1000
         vel_4: float = self.piper.GetArmHighSpdInfoMsgs().motor_5.motor_speed / 1000
         vel_5: float = self.piper.GetArmHighSpdInfoMsgs().motor_6.motor_speed / 1000
-        effort_0:float = self.piper.GetArmHighSpdInfoMsgs().motor_1.effort/1000
-        effort_1:float = self.piper.GetArmHighSpdInfoMsgs().motor_2.effort/1000
-        effort_2:float = self.piper.GetArmHighSpdInfoMsgs().motor_3.effort/1000
-        effort_3:float = self.piper.GetArmHighSpdInfoMsgs().motor_4.effort/1000
-        effort_4:float = self.piper.GetArmHighSpdInfoMsgs().motor_5.effort/1000
-        effort_5:float = self.piper.GetArmHighSpdInfoMsgs().motor_6.effort/1000
+        effort_0:float = self.piper.GetArmHighSpdInfoMsgs().motor_1.current/1000
+        effort_1:float = self.piper.GetArmHighSpdInfoMsgs().motor_2.current/1000
+        effort_2:float = self.piper.GetArmHighSpdInfoMsgs().motor_3.current/1000
+        effort_3:float = self.piper.GetArmHighSpdInfoMsgs().motor_4.current/1000
+        effort_4:float = self.piper.GetArmHighSpdInfoMsgs().motor_5.current/1000
+        effort_5:float = self.piper.GetArmHighSpdInfoMsgs().motor_6.current/1000
         effort_6:float = self.piper.GetArmGripperMsgs().gripper_state.grippers_effort/1000
-        current_0: float = self.piper.GetArmHighSpdInfoMsgs().motor_1.current
-        current_1: float = self.piper.GetArmHighSpdInfoMsgs().motor_2.current
-        current_2: float = self.piper.GetArmHighSpdInfoMsgs().motor_3.current
-        current_3: float = self.piper.GetArmHighSpdInfoMsgs().motor_4.current   
-        current_4: float = self.piper.GetArmHighSpdInfoMsgs().motor_5.current
-        current_5: float = self.piper.GetArmHighSpdInfoMsgs().motor_5.current
-
-        self.current.j1 = current_0
-        self.current.j2 = current_1
-        self.current.j3 = current_2
-        self.current.j4 = current_3
-        self.current.j5 = current_4
-        self.current.j6 = current_5
-
-        self.current.header.stamp = self.get_clock().now().to_msg()
 
         self.joint_states.position = [joint_0,joint_1, joint_2, joint_3, joint_4, joint_5,joint_6]
         self.joint_states.velocity = [vel_0, vel_1, vel_2, vel_3, vel_4, vel_5]
         self.joint_states.effort = [effort_0, effort_1, effort_2, effort_3, effort_4, effort_5, effort_6]
         # 发布所有消息
         self.joint_pub.publish(self.joint_states)
-        self.current_pub.publish(self.current)
-
-    def PublishArmCtrlAndGripper(self):
-        self.joint_ctrl.header.stamp = self.get_clock().now().to_msg()
-        joint_0: float = (self.piper.GetArmJointCtrl().joint_ctrl.joint_1/1000) * 0.017444
-        joint_1: float = (self.piper.GetArmJointCtrl().joint_ctrl.joint_2/1000) * 0.017444
-        joint_2: float = (self.piper.GetArmJointCtrl().joint_ctrl.joint_3/1000) * 0.017444
-        joint_3: float = (self.piper.GetArmJointCtrl().joint_ctrl.joint_4/1000) * 0.017444
-        joint_4: float = (self.piper.GetArmJointCtrl().joint_ctrl.joint_5/1000) * 0.017444
-        joint_5: float = (self.piper.GetArmJointCtrl().joint_ctrl.joint_6/1000) * 0.017444
-        joint_6: float = self.piper.GetArmGripperCtrl().gripper_ctrl.grippers_angle/1000000
-        self.joint_ctrl.position = [joint_0, joint_1, joint_2, joint_3, joint_4, joint_5, joint_6]  # Example values
-        self.joint_ctrl_pub.publish(self.joint_ctrl)
 
     def PublishArmEndPose(self):
         # End effector pose
@@ -227,20 +194,23 @@ class PiperRosNode(Node):
         """Callback function for subscribing to the torque controller
 
         Args:
-            torque_data(): The position data
+            torque_data(): The position data in Vector3 format to use standard ROS message types
+            X: The motor number, which can be 2, 3, 5
+            Y: The torque value, which can be positive or negative floating point number 
+            Z: The reserved value, which is not used in this case
         """
 
-        if torque_data.motor_num == 1 or torque_data.motor_num == 4 or torque_data.motor_num == 6:
+        if torque_data.x != 2 and torque_data.x != 3 and torque_data.x != 5:
             self.get_logger().info("Motor 1, 4 or 6 should not move")
             return
 
         self.get_logger().info(f"Received TorqueCmd:")
-        self.get_logger().info(f"Motor Number: {torque_data.motor_num}")
-        self.get_logger().info(f"torque: {torque_data.t_ref}")
+        self.get_logger().info(f"Motor Number: {torque_data.x}")
+        self.get_logger().info(f"torque: {torque_data.y}")
 
         if(self.GetEnableFlag()):
             self.piper.MotionCtrl_2(0x01, 0x04, 0, 0xAD)
-            self.piper.JointMitCtrl(torque_data.motor_num, 0, 0, 0, 0, torque_data.t_ref)
+            self.piper.JointMitCtrl(int(torque_data.x), 0, 0, 0, 0, torque_data.y)
 
     def enable_callback(self, enable_flag: Bool):
         """Callback function for enabling the robotic arm

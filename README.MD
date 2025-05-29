@@ -6,11 +6,11 @@ Forked from Piper ROS (https://github.com/agilexrobotics/Piper_ros)
 
 ### 1.1 Torque Control
 
-Torque control is enabled by creating the **TorqueCmd** topic. Specify the joint number and reference torque and publish.
+Torque control is enabled by creating the **TorqueCmd** topic. For standardisation, `geometry_msgs/Vector3` is used. X = motor number, Y = Torque value, Z is unused.  Specify the joint number and reference torque and publish.
 
 ### 1.2 Current Feedback
 
-Motor current with timestamp is added as a part of the feedback in JointCurrent. All currents (int64) are in mA.
+Motor current with timestamp is replacing the effort section in the `joint_states_single` topic.
 
 ### 1.3 Joint and positional control
 
@@ -29,4 +29,4 @@ Setup and prereq of this package is the same as Piper ROS. The new features are 
 
 Example: To give motor #2 a 0.5 Nm of force:
 
-` ros2 topic pub -1 /torque_cmd piper_msgs/msg/TorqueCmd "{motor_num: 2, t_ref: 0.5}" `
+` ros2 topic pub -1 /torque_cmd geometry_msgs/Vector3 "{X: 2, Y: 0.5, Z: 0}" `
