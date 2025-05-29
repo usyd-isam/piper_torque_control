@@ -42,7 +42,7 @@ class PiperRosNode(Node):
         self.joint_ctrl_pub = self.create_publisher(JointState, 'joint_ctrl', 1)
         self.arm_status_pub = self.create_publisher(PiperStatusMsg, 'arm_status', 1)
         self.end_pose_pub = self.create_publisher(Pose, 'end_pose', 1)
-        # self.current_pub = self.create_publisher(JointCurrent, 'joint_current', 1)
+        self.current_pub = self.create_publisher(JointCurrent, 'joint_current', 1)
         # Service
         self.motor_srv = self.create_service(Enable, 'enable_srv', self.handle_enable_service)
         # Joint
@@ -57,6 +57,8 @@ class PiperRosNode(Node):
         self.joint_ctrl.position = [0.0] * 7
         self.joint_ctrl.velocity = [0.0] * 7
         self.joint_ctrl.effort = [0.0] * 7
+        # Joint current
+        self.current = JointCurrent()
         # Enable flag
         self.__enable_flag = False
         # Create piper class and open CAN interface
@@ -79,7 +81,7 @@ class PiperRosNode(Node):
         rate = self.create_rate(200)  # 200 Hz
         enable_flag = False
         # Set timeout (seconds)
-        timeout = 0.1
+        timeout = 5
         # Record the time before entering the loop
         start_time = time.time()
         elapsed_time_flag = False
@@ -167,19 +169,28 @@ class PiperRosNode(Node):
         effort_4:float = self.piper.GetArmHighSpdInfoMsgs().motor_5.effort/1000
         effort_5:float = self.piper.GetArmHighSpdInfoMsgs().motor_6.effort/1000
         effort_6:float = self.piper.GetArmGripperMsgs().gripper_state.grippers_effort/1000
-        # current_0: float = self.piper.GetArmHighSpdInfoMsgs().motor_1.current
-        # current_1: float = self.piper.GetArmHighSpdInfoMsgs().motor_2.current
-        # current_2: float = self.piper.GetArmHighSpdInfoMsgs().motor_3.current
-        # current_3: float = self.piper.GetArmHighSpdInfoMsgs().motor_4.current   
-        # current_4: float = self.piper.GetArmHighSpdInfoMsgs().motor_5.current
-        # current_5: float = self.piper.GetArmHighSpdInfoMsgs().motor_5.current
-        
+        current_0: float = self.piper.GetArmHighSpdInfoMsgs().motor_1.current
+        current_1: float = self.piper.GetArmHighSpdInfoMsgs().motor_2.current
+        current_2: float = self.piper.GetArmHighSpdInfoMsgs().motor_3.current
+        current_3: float = self.piper.GetArmHighSpdInfoMsgs().motor_4.current   
+        current_4: float = self.piper.GetArmHighSpdInfoMsgs().motor_5.current
+        current_5: float = self.piper.GetArmHighSpdInfoMsgs().motor_5.current
+
+        self.current.j1 = current_0
+        self.current.j2 = current_1
+        self.current.j3 = current_2
+        self.current.j4 = current_3
+        self.current.j5 = current_4
+        self.current.j6 = current_5
+
+        self.current.header.stamp = self.get_clock().now().to_msg()
+
         self.joint_states.position = [joint_0,joint_1, joint_2, joint_3, joint_4, joint_5,joint_6]
         self.joint_states.velocity = [vel_0, vel_1, vel_2, vel_3, vel_4, vel_5]
         self.joint_states.effort = [effort_0, effort_1, effort_2, effort_3, effort_4, effort_5, effort_6]
         # 发布所有消息
         self.joint_pub.publish(self.joint_states)
-        # self.current_pub.publish([current_0, current_1, current_2, current_3, current_4, current_5])
+        self.current_pub.publish(self.current)
 
     def PublishArmCtrlAndGripper(self):
         self.joint_ctrl.header.stamp = self.get_clock().now().to_msg()
