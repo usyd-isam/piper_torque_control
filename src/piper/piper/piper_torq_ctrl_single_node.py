@@ -200,7 +200,7 @@ class PiperRosNode(Node):
             Z: The reserved value, which is not used in this case
         """
 
-        if torque_data.x != 2 and torque_data.x != 3 and torque_data.x != 5:
+        if torque_data.x != 1 and torque_data.x != 2 and torque_data.x != 3 and torque_data.x != 5:
             self.get_logger().info("Motor 1, 4 or 6 should not move")
             return
 
