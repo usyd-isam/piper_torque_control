@@ -23,10 +23,21 @@ Only joint 2, 3, and 5 are allowed for MIT control. All of the other joints will
 
 ## 2 To use
 
-Setup and prereq of this package is the same as Piper ROS. The new features are introduced:
+Setup and prereq of this package is the same as Piper ROS.
+
+### 2.0 Source the setup.bash
+
+### 2.1 Run this node:
+`ros2 run piper piper_torque_ctrl`
+
+### 2.2 Enable Arm:
+ros2 topic pub /enable_flag std_msgs/msg/Bool data:\ true\
 
 ### 2.1 Send torque message
 
 Example: To give motor #2 a 0.5 Nm of force:
 
-` ros2 topic pub -1 /torque_cmd geometry_msgs/Vector3 "{X: 2, Y: 0.5, Z: 0}" `
+` ros2 topic pub -1 /torque_cmd geometry_msgs/Vector3 "{x: 2, y: 0.5, z: 0}" `
+
+### 2.4 Disable Arm:
+ros2 topic pub /enable_flag std_msgs/msg/Bool data:\ false\
